@@ -1,0 +1,39 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_ROS_PORT: ${NEXT_PUBLIC_ROS_PORT:-9090}
+    container_name: botbrain_frontend
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_ROS_PORT: ${NEXT_PUBLIC_ROS_PORT:-9090}
+      Z4RTC_BRIDGE_URL: ${Z4RTC_BRIDGE_URL:-http://z4rtc_bridge:8787}
+    restart: unless-stopped
+    depends_on:
+      - z4rtc_bridge
+
+  z4rtc_bridge:
+    build: ./z4rtc_bridge
+    container_name: botbrain_z4rtc_bridge
+    ports:
+      - "${Z4RTC_BRIDGE_PORT:-8787}:8787"
+    environment:
+      Z4RTC_BRIDGE_PORT: ${Z4RTC_BRIDGE_PORT:-8787}
+      Z4RTC_COMMAND: ${Z4RTC_COMMAND:-python3 /opt/z4rtc/z4rtc.py}
+      Z4RTC_ALLOW_RAW_COMMANDS: ${Z4RTC_ALLOW_RAW_COMMANDS:-false}
+      UNITREE_CLOUD_EMAIL: ${UNITREE_CLOUD_EMAIL:-}
+      UNITREE_CLOUD_PASSWORD: ${UNITREE_CLOUD_PASSWORD:-}
+    volumes:
+      - ./z4rtc:/opt/z4rtc:ro
+    restart: unless-stopped

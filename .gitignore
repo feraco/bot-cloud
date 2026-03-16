@@ -1,0 +1,10 @@
+.env
+.DS_Store
+.vscode/
+
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+
+z4rtc/
+!z4rtc/README.md
