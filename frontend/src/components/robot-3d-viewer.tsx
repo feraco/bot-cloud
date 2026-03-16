@@ -25,7 +25,7 @@ const createROS3D = () => {
       camera: THREE.PerspectiveCamera;
       renderer: THREE.WebGLRenderer;
       controls: OrbitControls;
-      robot!: URDFRobot;
+      robot!: URDFRobot | THREE.Group;
       grid: THREE.GridHelper;
       lidarPoints: THREE.Points;
       lidarGeometry: THREE.BufferGeometry;
@@ -317,6 +317,32 @@ const createROS3D = () => {
         return robot;
       }
 
+      mountRobotModel(robotModel: THREE.Object3D) {
+        if (this.robot) {
+          this.scene.remove(this.robot);
+        }
+
+        robotModel.name = robotModel.name || 'Robot';
+        this.robot = robotModel as URDFRobot | THREE.Group;
+
+        this.robot.position.set(0, 0, ROBOT_STANDING_HEIGHT);
+        this.robot.rotation.set(0, 0, 0);
+        this.robot.updateMatrixWorld(true);
+
+        this.scene.add(this.robot);
+        this.scene.add(this.lidarPoints);
+        this.lidarPoints.frustumCulled = false;
+
+        this.updateCameraPosition();
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      showFallbackRobotModel() {
+        const placeholderRobot = this.createRobotModel();
+        placeholderRobot.name = 'Fallback Robot';
+        this.mountRobotModel(placeholderRobot);
+      }
+
       loadURDFRobotModel(robotType?: string) {
         const loader = new URDFLoader();
         
@@ -363,35 +389,15 @@ const createROS3D = () => {
               const axesHelper = new THREE.AxesHelper(1);
               robotModel.add(axesHelper);
             }
-
             robotModel.name = 'URDF Robot';
-            this.robot = robotModel;
-
-            // Position the robot above ground at standing height
-            this.robot.position.set(0, 0, ROBOT_STANDING_HEIGHT);
-            this.robot.rotation.set(0, 0, 0);
-            this.robot.updateMatrixWorld(true);
-
-            // Scale robot if needed
-            // robotModel.scale.set(0.5, 0.5, 0.5);
-
-            this.scene.add(this.robot);
-            this.scene.add(this.lidarPoints);
-
-            // Disable frustum culling for lidar points to keep them visible
-            this.lidarPoints.frustumCulled = false;
-
-            // Initialize camera position based on robot position
-            this.updateCameraPosition();
-
-            // Render the scene after robot is loaded
-            this.renderer.render(this.scene, this.camera);
+            this.mountRobotModel(robotModel);
           },
           (progress) => {
             console.log('Loading progress:', progress);
           },
           (error) => {
             console.error('Error loading URDF:', error);
+            this.showFallbackRobotModel();
           }
         );
       }
@@ -711,10 +717,12 @@ export function Robot3DViewer({
   // rigging hook
   useEffect(() => {
     if (viewerRef.current && viewerRef.current.robot && jointState) {
+      const urdfRobot = viewerRef.current.robot as URDFRobot;
+
       jointState.name.forEach((jointName, index) => {
         const jointValue = jointState?.position[index];
         // Acessa a junta pelo nome; verifique se os nomes do URDF coincidem com os do tópico
-        const joint = viewerRef.current.robot.joints?.[jointName];
+        const joint = urdfRobot.joints?.[jointName];
 
         if (joint && typeof joint.setJointValue === 'function') {
           joint.setJointValue(jointValue);

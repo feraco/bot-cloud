@@ -10,6 +10,7 @@ It keeps only the folders needed to boot the cloud-side stack:
 - `z4rtc/` as the placeholder checkout path expected by the bridge
 
 It intentionally excludes the full ROS 2 workspace, hardware files, and robot-local services.
+It also omits heavyweight bundled model and sample map assets so the starter stays small.
 
 ## Included structure
 
@@ -40,6 +41,7 @@ The frontend will be available on port `3000` and the bridge on port `8787`.
 - The frontend still expects robots to be reachable either through a private mesh/VPN address or through the optional z4rtc transport.
 - For remote ROS control across networks, use a private overlay such as Tailscale, Headscale, or WireGuard rather than exposing rosbridge directly.
 - If you change any `NEXT_PUBLIC_*` variable, rebuild the frontend image.
+- The starter does not ship the full `frontend/public/robot-models` and `frontend/public/imported-maps` asset sets. The 3D viewer falls back to a placeholder robot when those files are absent.
 
 ## Setup docs
 
