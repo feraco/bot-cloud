@@ -1,0 +1,69 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: botbrain_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - frontend
+      - z4rtc_bridge
+    networks:
+      - botbrain_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_ROS_PORT: ${NEXT_PUBLIC_ROS_PORT:-9090}
+    container_name: botbrain_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_ROS_PORT: ${NEXT_PUBLIC_ROS_PORT:-9090}
+      Z4RTC_BRIDGE_URL: http://z4rtc_bridge:8787
+    depends_on:
+      - z4rtc_bridge
+    networks:
+      - botbrain_network
+
+  z4rtc_bridge:
+    build: ./z4rtc_bridge
+    container_name: botbrain_z4rtc_bridge
+    restart: unless-stopped
+    environment:
+      Z4RTC_BRIDGE_PORT: 8787
+      Z4RTC_COMMAND: ${Z4RTC_COMMAND:-python3 /opt/z4rtc/z4rtc.py}
+      Z4RTC_ALLOW_RAW_COMMANDS: ${Z4RTC_ALLOW_RAW_COMMANDS:-false}
+      UNITREE_CLOUD_EMAIL: ${UNITREE_CLOUD_EMAIL:-}
+      UNITREE_CLOUD_PASSWORD: ${UNITREE_CLOUD_PASSWORD:-}
+    volumes:
+      - ./z4rtc:/opt/z4rtc:ro
+    networks:
+      - botbrain_network
+
+networks:
+  botbrain_network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
